@@ -38,19 +38,21 @@ async function syncCars() {
 
     const vehicle = detail.data;
 
-    await supabase
-      .from("cars")
-      .upsert({
-        id: car.Id,
-        title: vehicle.advertisement?.title,
-        price: vehicle.advertisement?.price,
-        year: vehicle.category?.year,
-        mileage: vehicle.spec?.mileage,
-        fuel: vehicle.spec?.fuelType,
-        transmission: vehicle.spec?.transmission,
-        raw_data: vehicle,
-        updated_at: new Date()
-      });
+const { data, error } = await supabase
+  .from("cars")
+  .upsert({
+    id: car.Id,
+    title: vehicle.advertisement?.title,
+    price: vehicle.advertisement?.price,
+    year: vehicle.category?.year,
+    mileage: vehicle.spec?.mileage,
+    fuel: vehicle.spec?.fuelType,
+    transmission: vehicle.spec?.transmission,
+    raw_data: vehicle,
+    updated_at: new Date()
+  });
+
+console.log(error);
   }
 
   const { data: existingCars } =
