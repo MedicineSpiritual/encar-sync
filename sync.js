@@ -3,8 +3,9 @@ require("dotenv").config();
 const axios = require("axios");
 const cron = require("node-cron");
 const cheerio = require("cheerio");
-const pLimit = require("p-limit");
-
+const pLimit =
+  require("p-limit").default;
+  
 const {
   createClient
 } = require("@supabase/supabase-js");
