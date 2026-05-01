@@ -8,6 +8,7 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.49.8",
     "axios": "^1.8.4",
+    "dotenv": "^17.4.2",
     "node-cron": "^4.0.5"
   }
 }
