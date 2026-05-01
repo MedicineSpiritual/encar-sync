@@ -7,6 +7,30 @@ const supabase = createClient(
   process.env.SUPABASE_ANON_KEY
 );
 
+function translateFuel(fuel) {
+
+  const map = {
+    gasoline: "Benzinë",
+    diesel: "Dizel",
+    hybrid: "Hibrid",
+    electric: "Elektrike",
+    lpg: "Gas",
+  };
+
+  return map[String(fuel).toLowerCase()] || fuel;
+}
+
+function translateTransmission(transmission) {
+
+  const map = {
+    automatic: "Automatik",
+    manual: "Manual",
+    cvt: "CVT",
+  };
+
+  return map[String(transmission).toLowerCase()] || transmission;
+}
+
 async function syncCars() {
 
   try {
@@ -19,7 +43,7 @@ async function syncCars() {
         params: {
           count: true,
           q: "(And.Hidden.N.)",
-          sr: "|ModifiedDate|0|50"
+          sr: "|ModifiedDate|0|100"
         }
       }
     );
@@ -36,56 +60,80 @@ async function syncCars() {
           `https://api.encar.com/v1/readside/clean-encar/vehicle/${car.Id}`
         );
 
-        const vehicle = detail.data;
+        const vehicle = detail.data || {};
+
+        const title =
+          vehicle?.advertisement?.title ||
+          vehicle?.title ||
+          car?.Title ||
+          "Pa titull";
+
+        const price =
+          vehicle?.advertisement?.price ||
+          vehicle?.price ||
+          car?.Price ||
+          0;
+
+        const year =
+          vehicle?.category?.year ||
+          vehicle?.year ||
+          car?.Year ||
+          null;
+
+        const mileage =
+          vehicle?.spec?.mileage ||
+          vehicle?.mileage ||
+          car?.Mileage ||
+          0;
+
+        const fuel =
+          vehicle?.spec?.fuelType ||
+          vehicle?.fuelType ||
+          car?.FuelType ||
+          "";
+
+        const transmission =
+          vehicle?.spec?.transmission ||
+          vehicle?.transmission ||
+          car?.Transmission ||
+          "";
+
+        const photos =
+          vehicle?.photos ||
+          vehicle?.images ||
+          [];
+
+        const thumbnail =
+          photos?.[0]?.url ||
+          photos?.[0] ||
+          null;
 
         const data = {
           id: car.Id,
 
-          title:
-            vehicle?.advertisement?.title ||
-            car?.Title ||
-            "",
+          title,
 
-          price:
-            vehicle?.advertisement?.price ||
-            car?.Price ||
-            0,
+          price,
 
-          year:
-            vehicle?.category?.year ||
-            car?.Year ||
-            null,
+          year,
 
-          mileage:
-            vehicle?.spec?.mileage ||
-            car?.Mileage ||
-            0,
+          mileage,
 
-          fuel:
-            vehicle?.spec?.fuelType ||
-            car?.FuelType ||
-            "",
+          fuel: translateFuel(fuel),
 
           transmission:
-            vehicle?.spec?.transmission ||
-            car?.Transmission ||
-            "",
+            translateTransmission(transmission),
 
-          thumbnail:
-            vehicle?.photos?.[0]?.url ||
-            car?.Photo ||
-            null,
+          thumbnail,
 
-          images:
-            vehicle?.photos ||
-            [],
+          images: photos,
 
           raw_data: vehicle,
 
           updated_at: new Date()
         };
 
-        console.log("INSERTING:", data);
+        console.log("INSERT:", title);
 
         const { error } = await supabase
           .from("cars")
@@ -93,14 +141,15 @@ async function syncCars() {
 
         if (error) {
           console.log("SUPABASE ERROR:", error);
-        } else {
-          console.log("SUCCESS:", car.Id);
         }
 
       } catch (err) {
 
-        console.log("DETAIL ERROR:", err.message);
-
+        console.log(
+          "DETAIL ERROR:",
+          car.Id,
+          err.message
+        );
       }
     }
 
