@@ -1,0 +1,13 @@
+{
+  "name": "oni-sync",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.8",
+    "axios": "^1.8.4",
+    "node-cron": "^4.0.5"
+  }
+}
