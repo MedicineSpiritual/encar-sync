@@ -7,32 +7,29 @@ const supabase = createClient(
   process.env.SUPABASE_ANON_KEY
 );
 
-function krwToEur(priceKrw) {
-  if (!priceKrw) return null;
+function krwToEur(price) {
 
-  const eur = Math.round(priceKrw * 0.00067);
+  if (!price) return null;
 
-  return eur + 1500;
+  return Math.round(price * 0.00067) + 1500;
 }
 
-async function translateToAlbanian(text) {
-  if (!text) return "";
+function createSlug(text) {
 
   return text
-    .replace(/automatic/gi, "Automatik")
-    .replace(/manual/gi, "Manual")
-    .replace(/diesel/gi, "Dizel")
-    .replace(/gasoline/gi, "Benzinë")
-    .replace(/hybrid/gi, "Hibrid")
-    .replace(/electric/gi, "Elektrik");
+    ?.toLowerCase()
+    ?.replace(/[^a-z0-9]+/g, "-")
+    ?.replace(/(^-|-$)/g, "");
 }
 
 async function syncCars() {
+
   try {
 
     console.log("SYNC START");
 
     let start = 0;
+
     let allCars = [];
 
     while (true) {
@@ -54,11 +51,11 @@ async function syncCars() {
 
       allCars = [...allCars, ...cars];
 
+      console.log(`Loaded ${allCars.length}`);
+
       start += 50;
 
-      console.log(`Loaded ${allCars.length} cars`);
-
-      if (start > 300) break;
+      if (start >= 300) break;
     }
 
     const currentIds = [];
@@ -75,62 +72,84 @@ async function syncCars() {
 
         const vehicle = detail.data;
 
+        console.log(JSON.stringify(vehicle));
+
         const title =
           vehicle?.advertisement?.title ||
           vehicle?.vehicleName ||
-          "Pa titull";
-
-        const translatedTitle =
-          await translateToAlbanian(title);
-
-        const priceKrw =
-          vehicle?.advertisement?.price;
-
-        const priceEur =
-          krwToEur(priceKrw);
+          "No title";
 
         const images =
           vehicle?.photos?.map(x => x.url) || [];
 
-        const thumbnail =
-          images[0] || null;
-
-        const fuel =
-          vehicle?.spec?.fuelType || "";
-
-        const transmission =
-          vehicle?.spec?.transmission || "";
-
-        const year =
-          vehicle?.category?.year || null;
-
-        const mileage =
-          vehicle?.spec?.mileage || null;
-
-        const aiDescription = `
-${translatedTitle}
-
-Vetura është e importuar nga Koreja.
-
-✔ Doganë deri në Durrës
-✔ Kilometra reale
-✔ Gjendje shumë e mirë
-✔ Dokumentacion korrekt
-✔ Transport i sigurt
-        `;
-
         const payload = {
+
           id: car.Id,
-          title: translatedTitle,
-          description: aiDescription,
-          price: priceEur,
-          year,
-          mileage,
-          fuel: await translateToAlbanian(fuel),
-          transmission: await translateToAlbanian(transmission),
-          thumbnail,
+
+          title,
+          title_sq: title,
+
+          slug: createSlug(title),
+
+          description:
+            `${title} importuar nga Korea.`,
+
+          description_sq:
+            `${title} e importuar nga Korea.`,
+
+          brand:
+            vehicle?.category?.manufacturer,
+
+          model:
+            vehicle?.category?.model,
+
+          year:
+            vehicle?.category?.year,
+
+          mileage:
+            vehicle?.spec?.mileage,
+
+          fuel:
+            vehicle?.spec?.fuelType,
+
+          transmission:
+            vehicle?.spec?.transmission,
+
+          drivetrain:
+            vehicle?.spec?.driveType,
+
+          engine:
+            vehicle?.spec?.engineDisplacement,
+
+          exterior_color:
+            vehicle?.spec?.bodyColor,
+
+          interior_color:
+            vehicle?.spec?.seatColor,
+
+          price_krw:
+            vehicle?.advertisement?.price,
+
+          price_eur:
+            krwToEur(
+              vehicle?.advertisement?.price
+            ),
+
+          thumbnail:
+            images[0] || null,
+
           images,
+
+          vin:
+            vehicle?.spec?.vin,
+
+          seller_name:
+            vehicle?.seller?.name,
+
           raw_data: vehicle,
+
+          sold: false,
+
           updated_at: new Date()
         };
 
@@ -139,13 +158,19 @@ Vetura është e importuar nga Koreja.
           .upsert(payload);
 
         if (error) {
-          console.log("UPSERT ERROR", error);
+
+          console.log(error);
+
         } else {
+
           console.log(`Saved ${car.Id}`);
         }
 
       } catch (err) {
-        console.log("DETAIL ERROR", err.message);
+
+        console.log("DETAIL ERROR");
+
+        console.log(err.message);
       }
     }
 
@@ -162,17 +187,17 @@ Vetura është e importuar nga Koreja.
 
       await supabase
         .from("cars")
-        .delete()
+        .update({ sold: true })
         .in("id", soldIds);
 
-      console.log(`Deleted ${soldIds.length} sold cars`);
+      console.log(`Sold: ${soldIds.length}`);
     }
 
     console.log("SYNC DONE");
 
   } catch (err) {
 
-    console.log("MAIN ERROR", err.message);
+    console.log(err.message);
   }
 }
 
