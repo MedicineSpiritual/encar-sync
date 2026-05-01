@@ -3,9 +3,8 @@ require("dotenv").config();
 const axios = require("axios");
 const cron = require("node-cron");
 const cheerio = require("cheerio");
-const pLimit =
-  require("p-limit").default;
-  
+const pLimit = require("p-limit").default;
+
 const {
   createClient
 } = require("@supabase/supabase-js");
@@ -15,9 +14,10 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-const limit = pLimit(3);
+const limit = pLimit(5);
 
-const EUR_RATE = 0.00067;
+let EUR_RATE = 0.00067;
+
 const TRANSPORT_FEE = 1500;
 
 function createSlug(text) {
@@ -26,6 +26,36 @@ function createSlug(text) {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
+}
+
+async function updateCurrencyRate() {
+
+  try {
+
+    const res = await axios.get(
+      "https://open.er-api.com/v6/latest/KRW"
+    );
+
+    const rate =
+      res.data?.rates?.EUR;
+
+    if (rate) {
+
+      EUR_RATE = rate;
+
+      console.log(
+        "LIVE KRW -> EUR:",
+        EUR_RATE
+      );
+    }
+
+  } catch (err) {
+
+    console.log(
+      "Currency error:",
+      err.message
+    );
+  }
 }
 
 function translateFuel(fuel) {
@@ -53,7 +83,8 @@ function translateTransmission(t) {
 
     automatic: "Automatik",
     manual: "Manual",
-    cvt: "CVT"
+    cvt: "CVT",
+    semiautomatic: "Gjysmë-automatik"
 
   };
 
@@ -63,35 +94,137 @@ function translateTransmission(t) {
   ] || t || "";
 }
 
-async function getInspection(id) {
+function buildTitle(car) {
+
+  return `
+    ${car.Manufacturer || ""}
+    ${car.Model || ""}
+    ${car.Badge || ""}
+  `
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+async function getInspectionData(carId) {
 
   try {
 
     const url =
-      `https://www.encar.com/md/sl/mdsl_regcar.do?method=inspectionViewNew&carid=${id}`;
+      `https://www.encar.com/md/sl/mdsl_regcar.do?method=inspectionViewNew&carid=${carId}`;
 
-    const res = await axios.get(url);
+    const res =
+      await axios.get(url);
 
-    const $ = cheerio.load(res.data);
+    const html = res.data;
 
-    const text = $("body").text();
+    const $ = cheerio.load(html);
 
-    return {
+    const text =
+      $("body").text();
 
-      accident_history:
-        text.includes("무사고")
-          ? "Pa aksidente"
-          : "Me aksidente",
+    const inspection = {
 
-      inspection_score:
-        text.includes("양호")
-          ? "Gjendje e mirë"
-          : null
+      accident_history: "",
+      owner_count: null,
+      inspection_score: "",
+      insurance_history: "",
+      dealer_comment: "",
+      engine_status: "",
+      transmission_status: "",
+      leak_status: "",
+      body_condition: ""
     };
 
-  } catch {
+    if (
+      text.includes("무사고")
+    ) {
 
-    return {};
+      inspection.accident_history =
+        "Pa aksidente";
+    }
+
+    else if (
+      text.includes("사고")
+    ) {
+
+      inspection.accident_history =
+        "Me aksidente";
+    }
+
+    const ownerMatch =
+      text.match(/소유자변경\s*(\d+)/);
+
+    if (ownerMatch) {
+
+      inspection.owner_count =
+        Number(ownerMatch[1]);
+    }
+
+    if (
+      text.includes("엔진 상태 양호")
+    ) {
+
+      inspection.engine_status =
+        "Motor në gjendje të mirë";
+    }
+
+    if (
+      text.includes("미션 상태 양호")
+    ) {
+
+      inspection.transmission_status =
+        "Kambio në gjendje të mirë";
+    }
+
+    if (
+      text.includes("누유 없음")
+    ) {
+
+      inspection.leak_status =
+        "Pa rrjedhje";
+    }
+
+    if (
+      text.includes("판금")
+    ) {
+
+      inspection.body_condition =
+        "Ka riparime";
+    }
+
+    else {
+
+      inspection.body_condition =
+        "Karroceri e mirë";
+    }
+
+    if (
+      text.includes("보험")
+    ) {
+
+      inspection.insurance_history =
+        "Ka histori sigurimi";
+    }
+
+    if (
+      text.includes("양호")
+    ) {
+
+      inspection.inspection_score =
+        "Gjendje e mirë";
+    }
+
+    return inspection;
+
+  } catch (err) {
+
+    console.log(
+      "INSPECTION ERROR:",
+      carId,
+      err.message
+    );
+
+    return null;
   }
 }
 
@@ -99,74 +232,78 @@ async function processCar(car) {
 
   try {
 
-    const id = Number(car.Id);
+    const id =
+      Number(car.Id);
 
-    console.log("SYNC:", id);
-
-    const detailRes = await axios.get(
-      `https://api.encar.com/v1/readside/vehicle/${id}`,
-      {
-        params: {
-          include:
-            "ADVERTISEMENT,CATEGORY,OPTIONS,PHOTOS,SPEC,CONTACT,MANAGE"
-        }
-      }
+    console.log(
+      "SYNC:",
+      id
     );
 
-    const detail = detailRes.data || {};
+    const detailRes =
+      await axios.get(
+        `https://api.encar.com/v1/readside/vehicle/${id}`,
+        {
+          params: {
+            include:
+              "ADVERTISEMENT,CATEGORY,CONDITION,CONTACT,MANAGE,OPTIONS,PHOTOS,SPEC,PARTNERSHIP,CENTER,VIEW"
+          }
+        }
+      );
+
+    const detail =
+      detailRes.data || {};
 
     const inspection =
-      await getInspection(id);
+      await getInspectionData(
+        id
+      );
 
-    const title = `
-      ${car.Manufacturer || ""}
-      ${car.Model || ""}
-      ${car.Badge || ""}
-    `
-      .replace(/\s+/g, " ")
-      .trim();
+    const title =
+      buildTitle(car);
 
-    // PRICE FIX
-    let rawPrice =
+    const rawPrice =
       car.Price ||
       detail?.advertisement?.price ||
       0;
 
-    rawPrice =
+    const manWon =
       Number(
         String(rawPrice)
           .replace(/,/g, "")
       );
 
-    // ENCAR issue fix
-    if (rawPrice < 1000000) {
-      rawPrice =
-        rawPrice * 10000;
-    }
+    const priceKrw =
+      manWon * 10000;
 
     const priceEur =
       Math.round(
-        rawPrice * EUR_RATE
+        priceKrw *
+        EUR_RATE
       );
 
     const totalPrice =
       priceEur +
       TRANSPORT_FEE;
 
-    // PHOTOS
     let images = [];
 
-    const photoArrays = [
+    const photoSources = [
 
       ...(car.Photos || []),
 
       ...(detail?.photos || []),
 
-      ...(detail?.advertisement?.photos || [])
+      ...(detail?.vehiclePhotos || []),
 
+      ...(detail?.advertisement?.photos || []),
+
+      ...(detail?.photoList || []),
+
+      ...(detail?.images || [])
     ];
 
-    for (const p of photoArrays) {
+    for (const p of photoSources) {
 
       if (p?.path) {
 
@@ -177,7 +314,9 @@ async function processCar(car) {
 
       else if (p?.url) {
 
-        images.push(p.url);
+        images.push(
+          p.url
+        );
       }
     }
 
@@ -185,8 +324,20 @@ async function processCar(car) {
       ...new Set(images)
     ];
 
-    // LIMIT 20+
-    images = images.slice(0, 30);
+    const thumbnail =
+      images[0] || null;
+
+    const fuel =
+      car.FuelType ||
+      detail?.spec?.fuelType ||
+      detail?.category?.fuelType ||
+      detail?.fuelType ||
+      "";
+
+    const transmission =
+      car.Transmission ||
+      detail?.spec?.transmission ||
+      "";
 
     const payload = {
 
@@ -197,37 +348,66 @@ async function processCar(car) {
 
       title,
 
-      title_sq: title,
+      title_sq:
+        title
+          .replace(
+            "Gasoline",
+            "Benzinë"
+          )
+          .replace(
+            "Diesel",
+            "Dizel"
+          )
+          .replace(
+            "Automatic",
+            "Automatik"
+          ),
 
       description:
         `${title} imported from Korea.`,
 
       description_sq:
-        `${title} e importuar nga Korea.`,
+        `${title} e importuar nga Korea me transport deri në Durrës.`,
 
       brand:
-        car.Manufacturer || null,
+        car.Manufacturer ||
+        null,
 
       model:
-        car.Model || null,
+        car.Model ||
+        null,
 
       badge:
-        car.Badge || null,
+        car.Badge ||
+        null,
 
       year:
-        Number(car.Year) || null,
+        Number(
+          car.Year ||
+          detail?.category?.year
+        ) || null,
+
+      month:
+        Number(
+          detail?.category?.month
+        ) || null,
 
       mileage:
-        Number(car.Mileage) || 0,
+        Number(
+          car.Mileage ||
+          detail?.spec?.mileage ||
+          detail?.spec?.odoMeter ||
+          detail?.mileage
+        ) || 0,
 
       fuel:
         translateFuel(
-          car.FuelType
+          fuel
         ),
 
       transmission:
         translateTransmission(
-          car.Transmission
+          transmission
         ),
 
       drivetrain:
@@ -236,10 +416,13 @@ async function processCar(car) {
 
       engine:
         detail?.spec?.engineDisplacement ||
+        detail?.spec?.displacement ||
+        detail?.engine ||
         null,
 
       exterior_color:
         detail?.spec?.bodyColor ||
+        detail?.category?.color ||
         null,
 
       interior_color:
@@ -247,7 +430,7 @@ async function processCar(car) {
         null,
 
       price_krw:
-        rawPrice,
+        priceKrw,
 
       price_eur:
         priceEur,
@@ -258,13 +441,13 @@ async function processCar(car) {
       total_price_eur:
         totalPrice,
 
-      thumbnail:
-        images[0] || null,
+      thumbnail,
 
       images,
 
       seller_name:
-        car.DealerName || null,
+        car.DealerName ||
+        null,
 
       seller_phone:
         detail?.contact?.cellPhone ||
@@ -279,28 +462,52 @@ async function processCar(car) {
         null,
 
       options:
-        detail?.options || [],
+        detail?.options ||
+        [],
+
+      views:
+        detail?.view?.count || 0,
 
       inspection,
 
       accident_history:
-        inspection?.accident_history,
+        inspection?.accident_history ||
+        null,
+
+      owner_count:
+        inspection?.owner_count ||
+        null,
 
       inspection_score:
-        inspection?.inspection_score,
+        inspection?.inspection_score ||
+        null,
+
+      insurance_history:
+        inspection?.insurance_history ||
+        null,
+
+      dealer_comment:
+        inspection?.dealer_comment ||
+        null,
 
       sold: false,
 
       raw_data: {
+
         search: car,
-        detail
+
+        detail,
+
+        inspection
       },
 
       updated_at:
-        new Date().toISOString(),
+        new Date()
+          .toISOString(),
 
       last_seen_at:
-        new Date().toISOString()
+        new Date()
+          .toISOString()
     };
 
     const { error } =
@@ -312,7 +519,7 @@ async function processCar(car) {
 
       console.log(
         "SUPABASE ERROR:",
-        error.message
+        error
       );
 
     } else {
@@ -325,12 +532,17 @@ async function processCar(car) {
       );
     }
 
+    return id;
+
   } catch (err) {
 
     console.log(
       "CAR ERROR:",
+      car.Id,
       err.message
     );
+
+    return null;
   }
 }
 
@@ -338,7 +550,11 @@ async function syncCars() {
 
   try {
 
-    console.log("SYNC START");
+    await updateCurrencyRate();
+
+    console.log(
+      "SYNC START"
+    );
 
     let offset = 0;
 
@@ -348,20 +564,21 @@ async function syncCars() {
 
     while (true) {
 
-      const res = await axios.get(
-        "https://api.encar.com/search/car/list/general",
-        {
-          params: {
-            count: true,
-            q: "(And.Hidden.N.)",
-            sr:
-              `|ModifiedDate|${offset}|${pageSize}`
+      const inventory =
+        await axios.get(
+          "https://api.encar.com/search/car/list/general",
+          {
+            params: {
+              count: true,
+              q: "(And.Hidden.N.)",
+              sr: `|ModifiedDate|${offset}|${pageSize}`
+            }
           }
-        }
-      );
+        );
 
       const cars =
-        res.data?.SearchResults || [];
+        inventory.data
+          ?.SearchResults || [];
 
       if (!cars.length)
         break;
@@ -370,27 +587,71 @@ async function syncCars() {
         allCars.concat(cars);
 
       console.log(
-        "TOTAL:",
+        "TOTAL LOADED:",
         allCars.length
       );
 
       offset += pageSize;
 
-      // SAFE LIMIT
-      if (offset >= 300)
+      if (offset >= 5000)
         break;
     }
 
-    await Promise.all(
+    const processed =
+      await Promise.all(
 
-      allCars.map(car =>
-        limit(() =>
-          processCar(car)
+        allCars.map(car =>
+          limit(() =>
+            processCar(car)
+          )
         )
-      )
-    );
+      );
 
-    console.log("SYNC DONE");
+    const currentIds =
+      processed
+        .filter(Boolean)
+        .map(Number);
+
+    const {
+      data: existingCars
+    } = await supabase
+      .from("cars")
+      .select("id");
+
+    const soldIds =
+      (existingCars || [])
+        .filter(
+          x =>
+            !currentIds.includes(
+              Number(x.id)
+            )
+        )
+        .map(
+          x =>
+            Number(x.id)
+        );
+
+    if (soldIds.length) {
+
+      await supabase
+        .from("cars")
+        .update({
+          sold: true
+        })
+        .in(
+          "id",
+          soldIds
+        );
+
+      console.log(
+        "SOLD:",
+        soldIds.length
+      );
+    }
+
+    console.log(
+      "SYNC DONE"
+    );
 
   } catch (err) {
 
@@ -402,7 +663,7 @@ async function syncCars() {
 }
 
 cron.schedule(
-  "*/30 * * * *",
+  "*/15 * * * *",
   syncCars
 );
 
