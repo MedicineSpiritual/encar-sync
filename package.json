@@ -1,13 +1,18 @@
 {
-  "name": "oni-sync",
-  "version": "1.0.0",
-  "main": "sync.js",
-  "scripts": {
-    "start": "node sync.js"
-  },
+  "message": "npm ci",
+  "timestamp": "2026-05-01T18:41:44.984427078Z",
+  "severity": "error",
+  "children": [
+    {
+      "message": "npm warn config production Use `--omit=dev` instead.\n",
+      "timestamp": "2026-05-01T18:42:44.304965615Z"
+    },
+    {
+      "message": "npm error A complete log of this run can be found in: /root/.npm/_logs/2026-05-01T18_42_44_018Z-debug-0.log\n",
+      "timestamp": "2026-05-01T18:42:45.407468288Z"
+    }
+  ],
   "dependencies": {
-    "@supabase/supabase-js": "^2.49.8",
-    "axios": "^1.9.0",
-    "node-cron": "^3.0.3"
+    "dotenv": "^17.4.2"
   }
 }
