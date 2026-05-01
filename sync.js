@@ -3,8 +3,8 @@ const cron = require("node-cron");
 const { createClient } = require("@supabase/supabase-js");
 
 const supabase = createClient(
-  "SUPABASE_URL",
-  "SUPABASE_KEY"
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_ANON_KEY
 );
 
 async function syncCars() {
