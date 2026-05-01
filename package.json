@@ -1,28 +1,16 @@
 {
-  "name": "oni-sync",
+  "name": "encar-sync",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "sync.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node sync.js"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.105.1",
-    "axios": "^1.15.2",
-    "cheerio": "^1.2.0",
-    "dotenv": "^17.4.2",
-    "node-cron": "^4.2.1"
-  },
-  "description": "",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/MedicineSpiritual/encar-sync.git"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
-  "bugs": {
-    "url": "https://github.com/MedicineSpiritual/encar-sync/issues"
-  },
-  "homepage": "https://github.com/MedicineSpiritual/encar-sync#readme"
+    "@supabase/supabase-js": "^2.56.0",
+    "axios": "^1.9.0",
+    "cheerio": "^1.0.0",
+    "dotenv": "^16.5.0",
+    "node-cron": "^4.1.0",
+    "p-limit": "^6.2.0"
+  }
 }
