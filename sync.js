@@ -9,7 +9,6 @@ const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_ANON_KEY
 );
-
 async function syncCars() {
 
   const inventory = await axios.get(
@@ -24,6 +23,8 @@ async function syncCars() {
   );
 
   const cars = inventory.data.SearchResults;
+
+  console.log(cars.length);
 
   const currentIds = [];
 
