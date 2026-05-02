@@ -3,18 +3,41 @@ dotenv.config();
 
 import pLimit from "p-limit";
 
-import { searchCars } from "./services/searchCars.js";
-import { searchImportedCars } from "./services/searchImportedCars.js";
+import { searchCars }
+from "./services/searchCars.js";
 
-import { getVehicle } from "./services/getVehicle.js";
-import { getOptions } from "./services/getOptions.js";
-import { getInspection } from "./services/getInspection.js";
-import { getDiagnosis } from "./services/getDiagnosis.js";
-import { getVerification } from "./services/getVerification.js";
+import { getVehicle }
+from "./services/getVehicle.js";
 
-import { normalizeCar } from "./normalizeCar.js";
+import { getOptions }
+from "./services/getOptions.js";
 
-import { saveCar } from "./services/saveCar.js";
+import { getInspection }
+from "./services/getInspection.js";
+
+import { getDiagnosis }
+from "./services/getDiagnosis.js";
+
+import { getRegistrationInspection }
+from "./services/getRegistrationInspection.js";
+
+import { normalizeCar }
+from "./normalizeCar.js";
+
+import { saveCar }
+from "./services/saveCar.js";
+
+import { saveOptions }
+from "./services/saveOptions.js";
+
+import { saveInspection }
+from "./services/saveInspection.js";
+
+import { saveDiagnosis }
+from "./services/saveDiagnosis.js";
+
+import { saveRegistrationInspection }
+from "./services/saveRegistrationInspection.js";
 
 const limit = pLimit(2);
 
@@ -36,74 +59,121 @@ async function processCar(car) {
     );
 
     await delay(
-      1000 + Math.random() * 2000
+      2000 + Math.random() * 3000
     );
 
     const detail =
       await getVehicle(id);
-      
-let options = null;
-let inspection = null;
-let diagnosis = null;
-let verification = null;
 
-try {
-  options = await getOptions(id);
-} catch (e) {
-  console.log(`OPTIONS FAILED ${id}`);
-}
-
-try {
-  inspection = await getInspection(id);
-} catch (e) {
-  console.log(`INSPECTION FAILED ${id}`);
-}
-
-try {
-  diagnosis = await getDiagnosis(id);
-} catch (e) {
-  console.log(`DIAGNOSIS FAILED ${id}`);
-}
-
-try {
-  verification = await getVerification(id);
-} catch (e) {
-  console.log(`VERIFICATION FAILED ${id}`);
-}
-
-    const normalized =
-      normalizeCar(
-        detail,
-        options,
-        inspection,
-        diagnosis,
-        verification
-      );
-
-    if (!normalized) {
+    if (!detail) {
 
       console.log(
-        `Skipped ${id}`
+        `NO DETAIL ${id}`
       );
 
       return;
     }
 
-    await saveCar(normalized);
+    const normalized =
+      normalizeCar(detail);
+    detail,
+    options,
+    inspection,
+    diagnosis,
+    verification,
+    inspectionDetail
+
+    if (!normalized) {
+
+      console.log(
+        `SKIPPED ${id}`
+      );
+
+      return;
+    }
+
+    await saveCar(
+      normalized
+    );
 
     console.log(
-      `Saved ${id}`
+      `CAR SAVED ${id}`
     );
+
+    const options =
+      await getOptions(id);
+
+    if (
+      options &&
+      options.length
+    ) {
+
+      await saveOptions(
+        id,
+        options
+      );
+
+      console.log(
+        `OPTIONS SAVED ${id}`
+      );
+    }
+
+    const inspection =
+      await getInspection(id);
+
+    if (inspection) {
+
+      await saveInspection(
+        id,
+        inspection
+      );
+
+      console.log(
+        `INSPECTION SAVED ${id}`
+      );
+    }
+
+    const diagnosis =
+      await getDiagnosis(id);
+
+    if (diagnosis) {
+
+      await saveDiagnosis(
+        id,
+        diagnosis
+      );
+
+      console.log(
+        `DIAGNOSIS SAVED ${id}`
+      );
+    }
+
+    const registrationInspection =
+      await getRegistrationInspection(
+        id
+      );
+
+    if (
+      registrationInspection
+    ) {
+
+      await saveRegistrationInspection(
+        id,
+        registrationInspection
+      );
+
+      console.log(
+        `REGISTRATION SAVED ${id}`
+      );
+    }
 
   } catch (err) {
 
-    console.error(
+    console.log(
       `FAILED ${car.Id}`
     );
 
-    console.error(
-      err.message
-    );
+    console.log(err);
   }
 }
 
@@ -115,58 +185,23 @@ async function run() {
       "Starting sync..."
     );
 
-    // domestic
-    const domesticCars =
+    const cars =
       await searchCars();
 
     console.log(
-      `Domestic cars: ${domesticCars.length}`
+      `Found ${cars.length} cars`
     );
 
-    // imported
-    const importedCars =
-      await searchImportedCars();
+    await Promise.all(
 
-    console.log(
-      `Imported cars: ${importedCars.length}`
-    );
+      cars.map(car =>
 
-    // merge
-    const cars = [
-      ...domesticCars,
-      ...importedCars
-    ];
-
-    // remove duplicates
-    const uniqueCars = [
-      ...new Map(
-        cars.map(x => [x.Id, x])
-      ).values()
-    ];
-
-const filteredCars =
-  uniqueCars.filter(car => {
-
-    const year =
-      Number(
-        String(
-          car.Year || ""
-        ).slice(0, 4)
-      );
-
-    return year >= 2016;
-  });
-
-    console.log(
-  `Filtered cars: ${filteredCars.length}`
-);
-
-await Promise.all(
-  filteredCars.map(car =>
         limit(() =>
           processCar(car)
         )
+
       )
+
     );
 
     console.log(
@@ -175,13 +210,11 @@ await Promise.all(
 
   } catch (err) {
 
-    console.error(
+    console.log(
       "SYNC FAILED"
     );
 
-    console.error(
-      err.message
-    );
+    console.log(err);
   }
 }
 

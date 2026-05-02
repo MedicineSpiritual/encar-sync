@@ -1,25 +1,28 @@
 import slugify from "slugify";
 
 const fuelMap = {
-  "가솔린": "Benzine",
-  "디젤": "Naftë",
-  "전기": "Elektrike",
-  "하이브리드": "Hibride",
-  "LPG": "Gas"
+  "가솔린": "Petrol",
+  "디젤": "Diesel",
+  "전기": "Electric",
+  "하이브리드": "Hybrid",
+  "LPG": "LPG"
 };
 
 const transmissionMap = {
-  "오토": "Automatik",
-  "수동": "Manual"
+  "오토": "Automatic",
+  "수동": "Manual",
+  "세미오토": "Semi Automatic",
+  "CVT": "CVT"
 };
 
 const colorMap = {
-  "흰색": "Bardhë",
-  "검정색": "Zezë",
-  "회색": "Hiri",
-  "은색": "Argjendtë",
-  "파란색": "Kaltër",
-  "빨간색": "Kuqe"
+  "흰색": "White",
+  "검정색": "Black",
+  "회색": "Gray",
+  "은색": "Silver",
+  "파란색": "Blue",
+  "빨간색": "Red",
+  "진주색": "Pearl White"
 };
 
 export function normalizeCar(
@@ -27,7 +30,8 @@ export function normalizeCar(
   options,
   inspection,
   diagnosis,
-  verification
+  verification,
+  inspectionDetail
 ) {
 
   const vehicle =
@@ -55,7 +59,7 @@ export function normalizeCar(
       ? Number(yearMonth.slice(4, 6))
       : null;
 
-  if (year && year < 2016) {
+  if (year && year < 2015) {
     return null;
   }
 
@@ -70,6 +74,7 @@ export function normalizeCar(
         photo.path +
         "?impolicy=heightRate"
       );
+
     })
     .filter(Boolean);
 
@@ -81,18 +86,34 @@ export function normalizeCar(
     .filter(Boolean)
     .join(" ");
 
-  const priceKrw =
-    vehicle?.advertisement?.price ||
-    vehicle?.price ||
-    null;
+  const rawPrice =
+    Number(category?.price) || 0;
 
-  const eurRate = 0.00067;
+  const price_krw =
+    rawPrice * 10000;
 
-  const priceEur = priceKrw
-    ? Math.round(
-        (priceKrw * eurRate) + 1500
-      )
-    : null;
+  const eurRate = 1728;
+
+  const baseEuro =
+    price_krw / eurRate;
+
+  const price_eur =
+    Math.floor(baseEuro + 1500);
+
+  const fuel =
+    fuelMap[spec?.fuelName]
+    || spec?.fuelName
+    || null;
+
+  const transmission =
+    transmissionMap[spec?.transmissionName]
+    || spec?.transmissionName
+    || null;
+
+  const color =
+    colorMap[spec?.colorName]
+    || spec?.colorName
+    || null;
 
   return {
 
@@ -120,14 +141,12 @@ export function normalizeCar(
 
     month,
 
-    price_krw:
-      priceKrw,
+    price_krw,
 
-    price_eur:
-      priceEur,
+    price_eur,
 
     price:
-      priceEur,
+      price_eur,
 
     currency:
       "EUR",
@@ -136,25 +155,13 @@ export function normalizeCar(
       spec?.mileage || null,
 
     fuel_type:
-      fuelMap[
-        spec?.fuelName
-      ] ||
-      spec?.fuelName ||
-      null,
+      fuel,
 
     transmission:
-      transmissionMap[
-        spec?.transmissionName
-      ] ||
-      spec?.transmissionName ||
-      null,
+      transmission,
 
     color:
-      colorMap[
-        spec?.colorName
-      ] ||
-      spec?.colorName ||
-      null,
+      color,
 
     body_type:
       spec?.bodyName || null,
@@ -171,20 +178,22 @@ export function normalizeCar(
     images,
 
     options:
-      options || [],
+      options || {},
 
     inspection:
-      inspection || null,
-
-    accident:
-      inspection?.accident ||
-      null,
+      inspection || {},
 
     diagnosis:
-      diagnosis || null,
+      diagnosis || {},
 
     verification:
-      verification || null,
+      verification || {},
+
+    accident:
+      inspectionDetail || {},
+
+    inspection_detail:
+      inspectionDetail || {},
 
     raw_data:
       detail

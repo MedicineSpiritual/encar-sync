@@ -1,15 +1,23 @@
-import { supabase } from "../supabase.js";
+import { supabase }
+from "../supabase.js";
 
-export async function saveCar(car) {
+export async function saveCar(
+  car
+) {
 
-  const { error } =
-    await supabase
-      .from("cars")
-      .upsert(car);
+  const {
+    error
+  } = await supabase
+
+    .from("cars")
+
+    .upsert([car], {
+  onConflict: "id"
+});
 
   if (error) {
 
-    console.error(error);
+    console.log(error);
 
     throw error;
   }

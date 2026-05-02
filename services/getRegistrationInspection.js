@@ -4,7 +4,7 @@ from "cheerio";
 import { getBrowser }
 from "../browser.js";
 
-export async function getOptions(
+export async function getRegistrationInspection(
   id
 ) {
 
@@ -17,7 +17,7 @@ export async function getOptions(
       await browser.newPage();
 
     await page.goto(
-      `https://fem.encar.com/cars/option/${id}`,
+      `https://www.encar.com/md/sl/mdsl_regcar.do?method=inspectionViewNew&carid=${id}`,
       {
         waitUntil:
           "networkidle",
@@ -26,7 +26,7 @@ export async function getOptions(
     );
 
     await page.waitForTimeout(
-      4000
+      5000
     );
 
     const html =
@@ -37,36 +37,24 @@ export async function getOptions(
     const $ =
       cheerio.load(html);
 
-    const options = [];
+    const tables = [];
 
-    $("body *")
-      .each((i, el) => {
+    $("table")
+      .each((i, table) => {
 
-        const text =
-          $(el)
-            .text()
-            .trim();
-
-        if (
-          text &&
-          text.length > 2 &&
-          text.length < 80
-        ) {
-
-          options.push(text);
-        }
+        tables.push(
+          $(table).text()
+        );
       });
 
-    return [
-      ...new Set(options)
-    ];
+    return { tables };
 
   } catch (err) {
 
     console.log(
-      `OPTIONS FAILED ${id}`
+      `REGISTRATION FAILED ${id}`
     );
 
-    return [];
+    return null;
   }
 }
