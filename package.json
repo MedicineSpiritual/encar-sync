@@ -2,9 +2,12 @@
   "name": "encar-hybrid-sync",
   "version": "1.0.0",
   "type": "module",
+
   "scripts": {
-    "start": "node sync.js"
+    "start": "node sync.js",
+    "postinstall": "playwright install chromium"
   },
+
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",
     "axios": "^1.6.0",
