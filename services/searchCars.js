@@ -12,52 +12,78 @@ export async function searchCars() {
 
   const page = await browser.newPage();
 
+  const foundCars = [];
+
+  page.on("response", async response => {
+
+    try {
+
+      const url = response.url();
+
+      // capture Encar API responses
+      if (
+        url.includes("api") ||
+        url.includes("search") ||
+        url.includes("list")
+      ) {
+
+        const contentType =
+          response.headers()["content-type"] || "";
+
+        if (
+          contentType.includes("application/json")
+        ) {
+
+          const data =
+            await response.json();
+
+          // recursive scan for vehicle ids
+          const jsonString =
+            JSON.stringify(data);
+
+          const matches =
+            jsonString.match(/"vehicleId":\\d+/g) || [];
+
+          matches.forEach(match => {
+
+            const id =
+              match.replace('"vehicleId":', "");
+
+            foundCars.push({
+              Id: id
+            });
+          });
+        }
+      }
+
+    } catch (err) {
+      // ignore parse errors
+    }
+  });
+
   await page.goto(
     "https://fem.encar.com/cars",
     {
-      waitUntil: "domcontentloaded",
+      waitUntil: "networkidle",
       timeout: 120000
     }
   );
 
-  await page.waitForTimeout(10000);
+  await page.waitForTimeout(15000);
 
-  // scroll multiple times
-  for (let i = 0; i < 5; i++) {
+  // trigger more requests
+  for (let i = 0; i < 10; i++) {
 
-    await page.mouse.wheel(0, 5000);
+    await page.mouse.wheel(0, 7000);
 
-    await page.waitForTimeout(3000);
+    await page.waitForTimeout(2000);
   }
-
-  const ids = await page.evaluate(() => {
-
-    const results = [];
-
-    const html = document.body.innerHTML;
-
-    // find every carid=12345678
-    const matches =
-      html.match(/carid=\\d+/g) || [];
-
-    matches.forEach(match => {
-
-      const id =
-        match.replace("carid=", "");
-
-      results.push({
-        Id: id
-      });
-    });
-
-    return results;
-  });
 
   await browser.close();
 
   return [
     ...new Map(
-      ids.map(x => [x.Id, x])
+      foundCars.map(x => [x.Id, x])
     ).values()
   ];
 }
