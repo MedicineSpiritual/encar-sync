@@ -3,41 +3,17 @@ dotenv.config();
 
 import pLimit from "p-limit";
 
-import { searchCars }
-from "./services/searchCars.js";
+import { searchCars } from "./services/searchCars.js";
+import { getVehicle } from "./services/getVehicle.js";
+import { getOptions } from "./services/getOptions.js";
+import { getInspection } from "./services/getInspection.js";
+import { getDiagnosis } from "./services/getDiagnosis.js";
+import { getVerification } from "./services/getVerification.js";
+import { getInspectionDetail } from "./services/getInspectionDetail.js";
 
-import { getVehicle }
-from "./services/getVehicle.js";
+import { normalizeCar } from "./normalizeCar.js";
 
-import { getOptions }
-from "./services/getOptions.js";
-
-import { getInspection }
-from "./services/getInspection.js";
-
-import { getDiagnosis }
-from "./services/getDiagnosis.js";
-
-import { getRegistrationInspection }
-from "./services/getRegistrationInspection.js";
-
-import { normalizeCar }
-from "./normalizeCar.js";
-
-import { saveCar }
-from "./services/saveCar.js";
-
-import { saveOptions }
-from "./services/saveOptions.js";
-
-import { saveInspection }
-from "./services/saveInspection.js";
-
-import { saveDiagnosis }
-from "./services/saveDiagnosis.js";
-
-import { saveRegistrationInspection }
-from "./services/saveRegistrationInspection.js";
+import { saveCar } from "./services/saveCar.js";
 
 const limit = pLimit(2);
 
@@ -59,121 +35,114 @@ async function processCar(car) {
     );
 
     await delay(
-      2000 + Math.random() * 3000
+      1000 + Math.random() * 2000
     );
 
     const detail =
       await getVehicle(id);
 
-    if (!detail) {
+    let options = {};
+
+    let inspection = {};
+
+    let diagnosis = {};
+
+    let verification = {};
+
+    let inspectionDetail = {};
+
+    try {
+
+      options =
+        await getOptions(id);
+
+    } catch (err) {
 
       console.log(
-        `NO DETAIL ${id}`
+        `OPTIONS FAILED ${id}`
       );
+    }
 
-      return;
+    try {
+
+      inspection =
+        await getInspection(id);
+
+    } catch (err) {
+
+      console.log(
+        `INSPECTION FAILED ${id}`
+      );
+    }
+
+    try {
+
+      diagnosis =
+        await getDiagnosis(id);
+
+    } catch (err) {
+
+      console.log(
+        `DIAGNOSIS FAILED ${id}`
+      );
+    }
+
+    try {
+
+      verification =
+        await getVerification(id);
+
+    } catch (err) {
+
+      console.log(
+        `VERIFICATION FAILED ${id}`
+      );
+    }
+
+    try {
+
+      inspectionDetail =
+        await getInspectionDetail(id);
+
+    } catch (err) {
+
+      console.log(
+        `INSPECTION DETAIL FAILED ${id}`
+      );
     }
 
     const normalized =
-      normalizeCar(detail);
-    detail,
-    options,
-    inspection,
-    diagnosis,
-    verification,
-    inspectionDetail
+      normalizeCar(
+        detail,
+        options,
+        inspection,
+        diagnosis,
+        verification,
+        inspectionDetail
+      );
 
     if (!normalized) {
 
       console.log(
-        `SKIPPED ${id}`
+        `Skipped ${id}`
       );
 
       return;
     }
 
-    await saveCar(
-      normalized
-    );
+    await saveCar(normalized);
 
     console.log(
-      `CAR SAVED ${id}`
+      `Saved ${id}`
     );
-
-    const options =
-      await getOptions(id);
-
-    if (
-      options &&
-      options.length
-    ) {
-
-      await saveOptions(
-        id,
-        options
-      );
-
-      console.log(
-        `OPTIONS SAVED ${id}`
-      );
-    }
-
-    const inspection =
-      await getInspection(id);
-
-    if (inspection) {
-
-      await saveInspection(
-        id,
-        inspection
-      );
-
-      console.log(
-        `INSPECTION SAVED ${id}`
-      );
-    }
-
-    const diagnosis =
-      await getDiagnosis(id);
-
-    if (diagnosis) {
-
-      await saveDiagnosis(
-        id,
-        diagnosis
-      );
-
-      console.log(
-        `DIAGNOSIS SAVED ${id}`
-      );
-    }
-
-    const registrationInspection =
-      await getRegistrationInspection(
-        id
-      );
-
-    if (
-      registrationInspection
-    ) {
-
-      await saveRegistrationInspection(
-        id,
-        registrationInspection
-      );
-
-      console.log(
-        `REGISTRATION SAVED ${id}`
-      );
-    }
 
   } catch (err) {
 
-    console.log(
+    console.error(
       `FAILED ${car.Id}`
     );
 
-    console.log(err);
+    console.error(err);
   }
 }
 
@@ -210,11 +179,11 @@ async function run() {
 
   } catch (err) {
 
-    console.log(
+    console.error(
       "SYNC FAILED"
     );
 
-    console.log(err);
+    console.error(err);
   }
 }
 
