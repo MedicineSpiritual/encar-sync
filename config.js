@@ -1,17 +1,27 @@
 export const CONFIG = {
+
   MIN_YEAR: 2016,
+
   CONCURRENCY: 2,
 
-  ENCAR_SEARCH:
-    "https://api.encar.com/search/car/list/general",
-
-  ENCAR_DETAIL:
-    "https://api.encar.com/v1/readside/vehicle",
-
   HEADERS: {
-    "User-Agent": "Mozilla/5.0",
-    "Referer": "https://fem.encar.com/",
+
+    "User-Agent":
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0.0.0 Safari/537.36",
+
+    Referer:
+      "https://www.encar.com/",
+
+    Origin:
+      "https://www.encar.com",
+
+    Accept:
+      "application/json, text/plain, */*",
+
     "Accept-Language":
-      "ko-KR,ko;q=0.9,en;q=0.8"
+      "ko-KR,ko;q=0.9,en-US;q=0.8",
+
+    Connection:
+      "keep-alive"
   }
 };

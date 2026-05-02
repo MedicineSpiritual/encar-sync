@@ -4,12 +4,17 @@ import { filterCars } from "../utils/filter.js";
 export async function searchCars() {
 
   const url =
-    "https://api.encar.com/search/car/list/general";
+    "https://api.encar.com/search/car/list/premium";
 
   const params = {
-    count: 50,
-    q: "(And.Hidden.N._.CarType.Y.)",
-    sr: "|ModifiedDate|0|20"
+
+    count: 30,
+
+    q:
+      "(And.Hidden.N._.CarType.Y.)",
+
+    sr:
+      "|ModifiedDate|0|30"
   };
 
   const response =
