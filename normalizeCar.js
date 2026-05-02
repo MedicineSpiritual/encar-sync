@@ -1,5 +1,23 @@
 import slugify from "slugify";
 
+function buildImage(photo) {
+
+  if (!photo) return null;
+
+  // direkt url
+  if (photo.startsWith("http")) {
+    return photo;
+  }
+
+  // path normal
+  if (photo.includes("/carpicture/")) {
+    return `https://ci.encar.com${photo}?impolicy=heightRate`;
+  }
+
+  // fallback
+  return `https://ci.encar.com/carpicture${photo}?impolicy=heightRate`;
+}
+
 export function normalizeCar(
   detail,
   options,
@@ -7,11 +25,6 @@ export function normalizeCar(
   diagnosis,
   verification
 ) {
-
-  options = options || {};
-  inspection = inspection || {};
-  diagnosis = diagnosis || {};
-  verification = verification || {};
 
   const vehicle =
     detail?.vehicle || detail || {};
@@ -25,21 +38,22 @@ export function normalizeCar(
   const photos =
     vehicle?.photos || [];
 
-  const yearMonth =
+  const cleanYearMonth =
     String(
       category?.yearMonth || ""
-    );
+    ).replace(/[^\d]/g, "");
 
   const year =
-    yearMonth.length >= 4
-      ? Number(yearMonth.slice(0, 4))
+    cleanYearMonth.length >= 4
+      ? Number(cleanYearMonth.slice(0, 4))
       : null;
 
   const month =
-    yearMonth.length >= 6
-      ? Number(yearMonth.slice(4, 6))
+    cleanYearMonth.length >= 6
+      ? Number(cleanYearMonth.slice(4, 6))
       : null;
 
+  // vetëm 2016+
   if (year && year < 2016) {
     return null;
   }
@@ -47,14 +61,14 @@ export function normalizeCar(
   const images = photos
     .map(photo => {
 
-      if (!photo?.path)
-        return null;
+      const path =
+        photo?.path ||
+        photo?.Path ||
+        photo?.url ||
+        photo?.Url;
 
-      return (
-        "https://ci.encar.com/carpicture/carpicture" +
-        photo.path +
-        "?impolicy=heightRate"
-      );
+      return buildImage(path);
+
     })
     .filter(Boolean);
 
@@ -69,15 +83,20 @@ export function normalizeCar(
   return {
 
     id:
-      vehicle?.vehicleId || null,
+      vehicle?.vehicleId ||
+      vehicle?.VehicleId ||
+      null,
 
     title,
 
     slug:
-      slugify(title || "car", {
-        lower: true,
-        strict: true
-      }),
+      slugify(
+        `${title}-${vehicle?.vehicleId || ""}`,
+        {
+          lower: true,
+          strict: true
+        }
+      ),
 
     manufacturer:
       category?.manufacturerEnglishName || null,
@@ -107,16 +126,24 @@ export function normalizeCar(
     displacement:
       spec?.displacement || null,
 
+    price:
+      vehicle?.advertisementPrice ||
+      vehicle?.price ||
+      null,
+
     thumbnail:
       images[0] || null,
 
     images,
 
-    options,
+    options:
+      options || null,
 
-    inspection,
+    inspection:
+      inspection || null,
 
-    diagnosis,
+    diagnosis:
+      diagnosis || null,
 
     raw_data:
       detail
