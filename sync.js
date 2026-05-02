@@ -4,17 +4,22 @@ dotenv.config();
 import pLimit from "p-limit";
 
 import { searchCars } from "./services/searchCars.js";
+import { searchImportedCars } from "./services/searchImportedCars.js";
+
 import { getVehicle } from "./services/getVehicle.js";
 import { getOptions } from "./services/getOptions.js";
 import { getInspection } from "./services/getInspection.js";
 import { getDiagnosis } from "./services/getDiagnosis.js";
 import { getVerification } from "./services/getVerification.js";
+
 import { normalizeCar } from "./normalizeCar.js";
+
 import { saveCar } from "./services/saveCar.js";
 
 const limit = pLimit(2);
 
 function delay(ms) {
+
   return new Promise(resolve =>
     setTimeout(resolve, ms)
   );
@@ -26,7 +31,9 @@ async function processCar(car) {
 
     const id = car.Id;
 
-    console.log(`Processing ${id}`);
+    console.log(
+      `Processing ${id}`
+    );
 
     await delay(
       1000 + Math.random() * 2000
@@ -57,6 +64,7 @@ async function processCar(car) {
       );
 
     if (!normalized) {
+
       console.log(
         `Skipped ${id}`
       );
@@ -76,7 +84,9 @@ async function processCar(car) {
       `FAILED ${car.Id}`
     );
 
-    console.error(err.message);
+    console.error(
+      err.message
+    );
   }
 }
 
@@ -88,15 +98,41 @@ async function run() {
       "Starting sync..."
     );
 
-    const cars =
+    // domestic
+    const domesticCars =
       await searchCars();
 
     console.log(
-      `Found ${cars.length} cars`
+      `Domestic cars: ${domesticCars.length}`
+    );
+
+    // imported
+    const importedCars =
+      await searchImportedCars();
+
+    console.log(
+      `Imported cars: ${importedCars.length}`
+    );
+
+    // merge
+    const cars = [
+      ...domesticCars,
+      ...importedCars
+    ];
+
+    // remove duplicates
+    const uniqueCars = [
+      ...new Map(
+        cars.map(x => [x.Id, x])
+      ).values()
+    ];
+
+    console.log(
+      `Total unique cars: ${uniqueCars.length}`
     );
 
     await Promise.all(
-      cars.map(car =>
+      uniqueCars.map(car =>
         limit(() =>
           processCar(car)
         )
@@ -113,7 +149,9 @@ async function run() {
       "SYNC FAILED"
     );
 
-    console.error(err.message);
+    console.error(
+      err.message
+    );
   }
 }
 
