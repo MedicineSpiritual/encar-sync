@@ -118,8 +118,6 @@ export function normalizeCar(
 
     diagnosis,
 
-    verification,
-
     raw_data:
       detail
   };
