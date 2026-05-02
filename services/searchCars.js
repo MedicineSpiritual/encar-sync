@@ -2,52 +2,56 @@ import { chromium } from "playwright";
 
 export async function searchCars() {
 
-const browser = await chromium.launch({
-  headless: true,
-  args: [
-    "--no-sandbox",
-    "--disable-setuid-sandbox"
-  ]
-});
+  const browser = await chromium.launch({
+    headless: true,
+    args: [
+      "--no-sandbox",
+      "--disable-setuid-sandbox"
+    ]
+  });
 
-  const page =
-    await browser.newPage();
+  const page = await browser.newPage();
 
   await page.goto(
     "https://fem.encar.com/cars",
     {
-      waitUntil: "networkidle"
+      waitUntil: "domcontentloaded",
+      timeout: 120000
     }
   );
 
-  await page.waitForTimeout(5000);
+  await page.waitForTimeout(10000);
 
-  const ids =
-    await page.evaluate(() => {
+  // scroll multiple times
+  for (let i = 0; i < 5; i++) {
 
-      const results = [];
+    await page.mouse.wheel(0, 5000);
 
-      document
-        .querySelectorAll("a")
-        .forEach(el => {
+    await page.waitForTimeout(3000);
+  }
 
-          const href =
-            el.getAttribute("href");
+  const ids = await page.evaluate(() => {
 
-          if (!href) return;
+    const results = [];
 
-          const match =
-            href.match(/carid=(\\d+)/);
+    const html = document.body.innerHTML;
 
-          if (!match) return;
+    // find every carid=12345678
+    const matches =
+      html.match(/carid=\\d+/g) || [];
 
-          results.push({
-            Id: match[1]
-          });
-        });
+    matches.forEach(match => {
 
-      return results;
+      const id =
+        match.replace("carid=", "");
+
+      results.push({
+        Id: id
+      });
     });
+
+    return results;
+  });
 
   await browser.close();
 
