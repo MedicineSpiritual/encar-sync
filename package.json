@@ -4,8 +4,7 @@
   "type": "module",
 
   "scripts": {
-    "start": "node sync.js",
-    "postinstall": "playwright install chromium"
+    "start": "node sync.js"
   },
 
   "dependencies": {
