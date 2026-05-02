@@ -2,17 +2,23 @@ import { fetchRetry } from "../utils/fetch.js";
 
 export async function searchCars() {
 
+  const q = encodeURIComponent(
+    "(And.Hidden.N._.CarType.Y._.Year.range(2016..))"
+  );
+
   const url =
-    "https://api.encar.com/search/car/list/general" +
-    "?count=true" +
-    "&q=(And.Hidden.N._.CarType.Y._.Year.range(2016..))" +
-    "&sr=|ModifiedDate|0|50";
+    `https://api.encar.com/search/car/list/general?count=true&q=${q}&sr=|ModifiedDate|0|50`;
 
   const response =
     await fetchRetry(url);
 
   const data =
     response.data;
+
+  const cars =
+    data?.SearchResults ||
+    data?.searchResults ||
+    [];
 
   const results = [];
 
@@ -41,7 +47,7 @@ export async function searchCars() {
     }
   }
 
-  extract(data);
+  extract(cars);
 
   return [
     ...new Map(

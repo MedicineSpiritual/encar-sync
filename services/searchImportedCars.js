@@ -2,11 +2,12 @@ import { fetchRetry } from "../utils/fetch.js";
 
 export async function searchImportedCars() {
 
+  const q = encodeURIComponent(
+    "(And.Hidden.N._.CarType.N._.Year.range(2016..))"
+  );
+
   const url =
-    "https://api.encar.com/search/car/list/general" +
-    "?count=true" +
-    "&q=(And.Hidden.N._.CarType.N._.Year.range(2016..))" +
-    "&sr=|ModifiedDate|0|50";
+    `https://api.encar.com/search/car/list/general?count=true&q=${q}&sr=|ModifiedDate|0|50`;
 
   const response =
     await fetchRetry(url);
