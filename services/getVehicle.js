@@ -1,11 +1,12 @@
 import { fetchRetry } from "../utils/fetch.js";
-import { CONFIG } from "../config.js";
 
 export async function getVehicle(id) {
 
-  const response = await fetchRetry(
-    `${CONFIG.ENCAR_DETAIL}/${id}`
-  );
+  const url =
+    `https://api.encar.com/v1/readside/vehicle/${id}`;
+
+  const response =
+    await fetchRetry(url);
 
   return response.data;
 }

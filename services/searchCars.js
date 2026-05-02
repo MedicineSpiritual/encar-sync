@@ -1,12 +1,21 @@
 import { fetchRetry } from "../utils/fetch.js";
-import { CONFIG } from "../config.js";
 import { filterCars } from "../utils/filter.js";
 
 export async function searchCars() {
 
-  const response = await fetchRetry(
-    CONFIG.ENCAR_SEARCH
-  );
+  const url =
+    "https://api.encar.com/search/car/list/general";
+
+  const params = {
+    count: 50,
+    q: "(And.Hidden.N._.CarType.Y.)",
+    sr: "|ModifiedDate|0|20"
+  };
+
+  const response =
+    await fetchRetry(url, {
+      params
+    });
 
   const cars =
     response.data?.SearchResults || [];
