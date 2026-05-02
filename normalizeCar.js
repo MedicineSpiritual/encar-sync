@@ -1,25 +1,33 @@
 import slugify from "slugify";
 
-function buildImage(path) {
+const fuelMap = {
+  "가솔린": "Benzine",
+  "디젤": "Naftë",
+  "전기": "Elektrike",
+  "하이브리드": "Hibride",
+  "LPG": "Gas"
+};
 
-  if (!path) {
-    return null;
-  }
+const transmissionMap = {
+  "오토": "Automatik",
+  "수동": "Manual"
+};
 
-  // nëse është url komplet
-  if (typeof path === "string" && path.startsWith("http")) {
-    return path;
-  }
-
-  // path normal nga encar
-  return `https://ci.encar.com${path}?impolicy=heightRate`;
-}
+const colorMap = {
+  "흰색": "Bardhë",
+  "검정색": "Zezë",
+  "회색": "Hiri",
+  "은색": "Argjendtë",
+  "파란색": "Kaltër",
+  "빨간색": "Kuqe"
+};
 
 export function normalizeCar(
   detail,
   options,
   inspection,
-  diagnosis
+  diagnosis,
+  verification
 ) {
 
   const vehicle =
@@ -34,22 +42,19 @@ export function normalizeCar(
   const photos =
     vehicle?.photos || [];
 
-  const cleanYearMonth =
-    String(
-      category?.yearMonth || ""
-    ).replace(/[^\d]/g, "");
+  const yearMonth =
+    String(category?.yearMonth || "");
 
   const year =
-    cleanYearMonth.length >= 4
-      ? Number(cleanYearMonth.slice(0, 4))
+    yearMonth.length >= 4
+      ? Number(yearMonth.slice(0, 4))
       : null;
 
   const month =
-    cleanYearMonth.length >= 6
-      ? Number(cleanYearMonth.slice(4, 6))
+    yearMonth.length >= 6
+      ? Number(yearMonth.slice(4, 6))
       : null;
 
-  // filtro veturat para 2016
   if (year && year < 2016) {
     return null;
   }
@@ -57,13 +62,14 @@ export function normalizeCar(
   const images = photos
     .map(photo => {
 
-      const path =
-        photo?.path ||
-        photo?.Path ||
-        null;
+      if (!photo?.path)
+        return null;
 
-      return buildImage(path);
-
+      return (
+        "https://ci.encar.com/carpicture" +
+        photo.path +
+        "?impolicy=heightRate"
+      );
     })
     .filter(Boolean);
 
@@ -75,6 +81,19 @@ export function normalizeCar(
     .filter(Boolean)
     .join(" ");
 
+  const priceKrw =
+    vehicle?.advertisement?.price ||
+    vehicle?.price ||
+    null;
+
+  const eurRate = 0.00067;
+
+  const priceEur = priceKrw
+    ? Math.round(
+        (priceKrw * eurRate) + 1500
+      )
+    : null;
+
   return {
 
     id:
@@ -83,13 +102,10 @@ export function normalizeCar(
     title,
 
     slug:
-      slugify(
-        `${title}-${vehicle?.vehicleId || ""}`,
-        {
-          lower: true,
-          strict: true
-        }
-      ),
+      slugify(title || "car", {
+        lower: true,
+        strict: true
+      }),
 
     manufacturer:
       category?.manufacturerEnglishName || null,
@@ -104,23 +120,50 @@ export function normalizeCar(
 
     month,
 
+    price_krw:
+      priceKrw,
+
+    price_eur:
+      priceEur,
+
+    price:
+      priceEur,
+
+    currency:
+      "EUR",
+
     mileage:
       spec?.mileage || null,
 
     fuel_type:
-      spec?.fuelName || null,
+      fuelMap[
+        spec?.fuelName
+      ] ||
+      spec?.fuelName ||
+      null,
 
     transmission:
-      spec?.transmissionName || null,
+      transmissionMap[
+        spec?.transmissionName
+      ] ||
+      spec?.transmissionName ||
+      null,
 
     color:
-      spec?.colorName || null,
+      colorMap[
+        spec?.colorName
+      ] ||
+      spec?.colorName ||
+      null,
+
+    body_type:
+      spec?.bodyName || null,
+
+    seats:
+      spec?.seatCount || null,
 
     displacement:
       spec?.displacement || null,
-
-    price:
-      vehicle?.advertisementPrice || null,
 
     thumbnail:
       images[0] || null,
@@ -128,13 +171,20 @@ export function normalizeCar(
     images,
 
     options:
-      options || null,
+      options || [],
 
     inspection:
       inspection || null,
 
+    accident:
+      inspection?.accident ||
+      null,
+
     diagnosis:
       diagnosis || null,
+
+    verification:
+      verification || null,
 
     raw_data:
       detail
