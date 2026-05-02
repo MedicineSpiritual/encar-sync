@@ -3,7 +3,7 @@ import { fetchRetry } from "../utils/fetch.js";
 export async function searchCars() {
 
   const q = encodeURIComponent(
-    "(And.Hidden.N._.CarType.Y._.Year.range(2016..))"
+    "(And.Hidden.N._.CarType.Y.)"
   );
 
   const url =
@@ -14,11 +14,6 @@ export async function searchCars() {
 
   const data =
     response.data;
-
-  const cars =
-    data?.SearchResults ||
-    data?.searchResults ||
-    [];
 
   const results = [];
 
@@ -47,7 +42,7 @@ export async function searchCars() {
     }
   }
 
-  extract(cars);
+  extract(data);
 
   return [
     ...new Map(

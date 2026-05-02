@@ -127,12 +127,25 @@ async function run() {
       ).values()
     ];
 
-    console.log(
-      `Total unique cars: ${uniqueCars.length}`
-    );
+const filteredCars =
+  uniqueCars.filter(car => {
 
-    await Promise.all(
-      uniqueCars.map(car =>
+    const year =
+      Number(
+        String(
+          car.Year || ""
+        ).slice(0, 4)
+      );
+
+    return year >= 2016;
+  });
+
+    console.log(
+  `Filtered cars: ${filteredCars.length}`
+);
+
+await Promise.all(
+  filteredCars.map(car =>
         limit(() =>
           processCar(car)
         )

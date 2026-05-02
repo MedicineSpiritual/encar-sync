@@ -3,7 +3,7 @@ import { fetchRetry } from "../utils/fetch.js";
 export async function searchImportedCars() {
 
   const q = encodeURIComponent(
-    "(And.Hidden.N._.CarType.N._.Year.range(2016..))"
+    "(And.Hidden.N._.CarType.N.)"
   );
 
   const url =
