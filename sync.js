@@ -12,7 +12,7 @@ import { getInspection } from "./services/getInspection.js";
 import { getDiagnosis } from "./services/getDiagnosis.js";
 import { getVerification } from "./services/getVerification.js";
 
-import normalizeCar from "./normalizeCar.js";
+import { normalizeCar } from "./normalizeCar.js";
 
 import { saveCar } from "./services/saveCar.js";
 
@@ -41,7 +41,7 @@ async function processCar(car) {
 
     const detail =
       await getVehicle(id);
-
+      
 const options = null;
 const inspection = null;
 const diagnosis = null;
