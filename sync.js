@@ -42,7 +42,7 @@ async function processCar(car) {
     const detail =
       await getVehicle(id);
 
-    let options = null;
+let options = null;
 let inspection = null;
 let diagnosis = null;
 let verification = null;
@@ -52,28 +52,64 @@ try {
   options =
     await getOptions(id);
 
-} catch {}
+} catch (err) {
+
+  console.log(
+    `OPTIONS FAILED ${id}`
+  );
+
+  console.log(
+    err.message
+  );
+}
 
 try {
 
   inspection =
     await getInspection(id);
 
-} catch {}
+} catch (err) {
+
+  console.log(
+    `INSPECTION FAILED ${id}`
+  );
+
+  console.log(
+    err.message
+  );
+}
 
 try {
 
   diagnosis =
     await getDiagnosis(id);
 
-} catch {}
+} catch (err) {
+
+  console.log(
+    `DIAGNOSIS FAILED ${id}`
+  );
+
+  console.log(
+    err.message
+  );
+}
 
 try {
 
   verification =
     await getVerification(id);
 
-} catch {}
+} catch (err) {
+
+  console.log(
+    `VERIFICATION FAILED ${id}`
+  );
+
+  console.log(
+    err.message
+  );
+}
 
     const normalized =
       normalizeCar(
