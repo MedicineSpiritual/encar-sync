@@ -42,17 +42,38 @@ async function processCar(car) {
     const detail =
       await getVehicle(id);
 
-    const options =
-      await getOptions(id);
+    let options = null;
+let inspection = null;
+let diagnosis = null;
+let verification = null;
 
-    const inspection =
-      await getInspection(id);
+try {
 
-    const diagnosis =
-      await getDiagnosis(id);
+  options =
+    await getOptions(id);
 
-    const verification =
-      await getVerification(id);
+} catch {}
+
+try {
+
+  inspection =
+    await getInspection(id);
+
+} catch {}
+
+try {
+
+  diagnosis =
+    await getDiagnosis(id);
+
+} catch {}
+
+try {
+
+  verification =
+    await getVerification(id);
+
+} catch {}
 
     const normalized =
       normalizeCar(
