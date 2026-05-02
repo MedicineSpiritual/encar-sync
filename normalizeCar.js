@@ -1,29 +1,25 @@
 import slugify from "slugify";
 
-function buildImage(photo) {
+function buildImage(path) {
 
-  if (!photo) return null;
-
-  // direkt url
-  if (photo.startsWith("http")) {
-    return photo;
+  if (!path) {
+    return null;
   }
 
-  // path normal
-  if (photo.includes("/carpicture/")) {
-    return `https://ci.encar.com${photo}?impolicy=heightRate`;
+  // nëse është url komplet
+  if (typeof path === "string" && path.startsWith("http")) {
+    return path;
   }
 
-  // fallback
-  return `https://ci.encar.com/carpicture${photo}?impolicy=heightRate`;
+  // path normal nga encar
+  return `https://ci.encar.com${path}?impolicy=heightRate`;
 }
 
 export function normalizeCar(
   detail,
   options,
   inspection,
-  diagnosis,
-  verification
+  diagnosis
 ) {
 
   const vehicle =
@@ -53,7 +49,7 @@ export function normalizeCar(
       ? Number(cleanYearMonth.slice(4, 6))
       : null;
 
-  // vetëm 2016+
+  // filtro veturat para 2016
   if (year && year < 2016) {
     return null;
   }
@@ -64,8 +60,7 @@ export function normalizeCar(
       const path =
         photo?.path ||
         photo?.Path ||
-        photo?.url ||
-        photo?.Url;
+        null;
 
       return buildImage(path);
 
@@ -83,9 +78,7 @@ export function normalizeCar(
   return {
 
     id:
-      vehicle?.vehicleId ||
-      vehicle?.VehicleId ||
-      null,
+      vehicle?.vehicleId || null,
 
     title,
 
@@ -127,9 +120,7 @@ export function normalizeCar(
       spec?.displacement || null,
 
     price:
-      vehicle?.advertisementPrice ||
-      vehicle?.price ||
-      null,
+      vehicle?.advertisementPrice || null,
 
     thumbnail:
       images[0] || null,

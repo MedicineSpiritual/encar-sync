@@ -38,7 +38,9 @@ function extractCars(data) {
 
   function extract(obj) {
 
-    if (!obj) return;
+    if (!obj) {
+      return;
+    }
 
     if (Array.isArray(obj)) {
 
@@ -84,17 +86,17 @@ export async function searchCars() {
   const importedQuery =
     "(And.Hidden.N._.CarType.N.)";
 
-  const domestic =
+  const domesticData =
     await fetchCars(domesticQuery);
 
-  const imported =
+  const importedData =
     await fetchCars(importedQuery);
 
   const domesticCars =
-    extractCars(domestic);
+    extractCars(domesticData);
 
   const importedCars =
-    extractCars(imported);
+    extractCars(importedData);
 
   console.log(
     `Domestic cars: ${domesticCars.length}`
@@ -111,7 +113,7 @@ export async function searchCars() {
 
   const unique = [
     ...new Map(
-      combined.map(x => [x.Id, x])
+      combined.map(car => [car.Id, car])
     ).values()
   ];
 
