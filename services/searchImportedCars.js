@@ -1,19 +1,29 @@
-import { fetchRetry } from "../utils/fetch.js";
+import axios from "axios";
 
 export async function searchImportedCars() {
 
-  const q = encodeURIComponent(
-    "(And.Hidden.N._.CarType.N.)"
-  );
-
   const url =
-    `https://api.encar.com/search/car/list/general?count=true&q=${q}&sr=|ModifiedDate|0|50`;
+    "https://api.encar.com/search/car/list/general";
 
-  const response =
-    await fetchRetry(url);
+  const response = await axios.get(url, {
+    params: {
+      count: "true",
+      q: "(And.Hidden.N._.CarType.N.)",
+      sr: "|ModifiedDate|0|50"
+    },
+    headers: {
+      "User-Agent":
+        "Mozilla/5.0",
+      "Accept":
+        "application/json",
+      "Referer":
+        "https://www.encar.com/",
+      "Origin":
+        "https://www.encar.com"
+    }
+  });
 
-  const data =
-    response.data;
+  const data = response.data;
 
   const results = [];
 
@@ -33,7 +43,8 @@ export async function searchImportedCars() {
       if (obj.Id) {
 
         results.push({
-          Id: obj.Id
+          Id: obj.Id,
+          Year: obj.Year
         });
       }
 
