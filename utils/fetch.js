@@ -1,16 +1,12 @@
 import axios from "axios";
+
 import { CONFIG } from "../config.js";
 
 const client = axios.create({
 
-  headers: {
-    ...CONFIG.HEADERS,
+  timeout: 30000,
 
-    Accept: "application/json",
-    Connection: "keep-alive"
-  },
-
-  timeout: 30000
+  headers: CONFIG.HEADERS
 });
 
 export async function fetchRetry(
@@ -38,8 +34,8 @@ export async function fetchRetry(
       if (i === retries - 1)
         throw err;
 
-      await new Promise(r =>
-        setTimeout(r, 3000)
+      await new Promise(resolve =>
+        setTimeout(resolve, 3000)
       );
     }
   }

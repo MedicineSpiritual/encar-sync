@@ -8,6 +8,9 @@ export async function saveCar(car) {
       .upsert(car);
 
   if (error) {
+
     console.error(error);
+
+    throw error;
   }
 }

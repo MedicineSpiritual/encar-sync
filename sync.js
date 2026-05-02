@@ -5,48 +5,69 @@ import pLimit from "p-limit";
 
 import { searchCars } from "./services/searchCars.js";
 import { getVehicle } from "./services/getVehicle.js";
-import { scrapeOptions } from "./services/scrapeOptions.js";
-import { scrapeInspection } from "./services/scrapeInspection.js";
-import { scrapeAccident } from "./services/scrapeAccident.js";
+import { getOptions } from "./services/getOptions.js";
+import { getInspection } from "./services/getInspection.js";
+import { getDiagnosis } from "./services/getDiagnosis.js";
+import { getVerification } from "./services/getVerification.js";
 import { normalizeCar } from "./normalizeCar.js";
 import { saveCar } from "./services/saveCar.js";
-import { getRate } from "./services/currency.js";
 
 const limit = pLimit(2);
 
-async function processCar(car, rate) {
+function delay(ms) {
+  return new Promise(resolve =>
+    setTimeout(resolve, ms)
+  );
+}
+
+async function processCar(car) {
 
   try {
 
-    console.log(
-      `Processing ${car.Id}`
+    const id = car.Id;
+
+    console.log(`Processing ${id}`);
+
+    await delay(
+      1000 + Math.random() * 2000
     );
 
     const detail =
-      await getVehicle(car.Id);
+      await getVehicle(id);
 
     const options =
-      await scrapeOptions(car.Id);
+      await getOptions(id);
 
     const inspection =
-      await scrapeInspection(car.Id);
+      await getInspection(id);
 
-    const accident =
-      await scrapeAccident(car.Id);
+    const diagnosis =
+      await getDiagnosis(id);
+
+    const verification =
+      await getVerification(id);
 
     const normalized =
       normalizeCar(
         detail,
         options,
         inspection,
-        accident,
-        rate
+        diagnosis,
+        verification
       );
+
+    if (!normalized) {
+      console.log(
+        `Skipped ${id}`
+      );
+
+      return;
+    }
 
     await saveCar(normalized);
 
     console.log(
-      `Saved ${car.Id}`
+      `Saved ${id}`
     );
 
   } catch (err) {
@@ -74,17 +95,10 @@ async function run() {
       `Found ${cars.length} cars`
     );
 
-    const rate =
-      await getRate();
-
-    console.log(
-      `KRW → EUR rate: ${rate}`
-    );
-
     await Promise.all(
       cars.map(car =>
         limit(() =>
-          processCar(car, rate)
+          processCar(car)
         )
       )
     );

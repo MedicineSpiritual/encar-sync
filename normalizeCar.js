@@ -1,58 +1,62 @@
 import slugify from "slugify";
 
-import { parseYearMonth } from "./utils/year.js";
-import { buildHQImage } from "./utils/images.js";
-
 export function normalizeCar(
   detail,
   options,
   inspection,
-  accident,
-  rate
+  diagnosis,
+  verification
 ) {
 
+  const vehicle =
+    detail?.vehicle || detail || {};
+
   const category =
-    detail?.detail?.category || {};
+    vehicle?.category || {};
 
   const spec =
-    detail?.detail?.spec || {};
+    vehicle?.spec || {};
 
   const photos =
-    detail?.detail?.photos || [];
+    vehicle?.photos || [];
 
-  const advertisement =
-    detail?.detail?.advertisement || {};
+  const yearMonth =
+    String(
+      category?.yearMonth || ""
+    );
 
-  const {
-    year,
-    month
-  } = parseYearMonth(
-    category.yearMonth
-  );
+  const year =
+    yearMonth.length >= 4
+      ? Number(yearMonth.slice(0, 4))
+      : null;
+
+  const month =
+    yearMonth.length >= 6
+      ? Number(yearMonth.slice(4, 6))
+      : null;
+
+  if (year && year < 2016) {
+    return null;
+  }
 
   const images = photos
     .map(photo => {
 
-      if (!photo?.path) {
+      if (!photo?.path)
         return null;
-      }
 
-      return buildHQImage(
-        photo.path
+      return (
+        "https://ci.encar.com/carpicture" +
+        photo.path +
+        "?impolicy=heightRate"
       );
     })
     .filter(Boolean);
 
-  const priceKRW =
-    advertisement.price || 0;
-
-  const priceEUR =
-    Math.round(priceKRW * rate);
-
   const title = [
-    category.manufacturerEnglishName,
-    category.modelGroupEnglishName,
-    category.gradeDetailEnglishName
+    category?.manufacturerEnglishName,
+    category?.modelGroupEnglishName,
+    category?.gradeDetailEnglishName
   ]
     .filter(Boolean)
     .join(" ");
@@ -60,77 +64,58 @@ export function normalizeCar(
   return {
 
     id:
-      detail?.detail?.vehicleId || null,
+      vehicle?.vehicleId || null,
 
-    title:
-      title || null,
+    title,
 
     slug:
-      slugify(title || "vehicle", {
+      slugify(title || "car", {
         lower: true,
         strict: true
       }),
 
     manufacturer:
-      category.manufacturerEnglishName || null,
+      category?.manufacturerEnglishName || null,
 
     model:
-      category.modelGroupEnglishName || null,
+      category?.modelGroupEnglishName || null,
 
     grade:
-      category.gradeDetailEnglishName || null,
+      category?.gradeDetailEnglishName || null,
 
-    year:
-      year,
+    year,
 
-    month:
-      month,
-
-    price_krw:
-      priceKRW,
-
-    price_eur:
-      priceEUR,
+    month,
 
     mileage:
-      spec.mileage || null,
+      spec?.mileage || null,
 
     fuel_type:
-      spec.fuelName || null,
+      spec?.fuelName || null,
 
     transmission:
-      spec.transmissionName || null,
-
-    body_type:
-      spec.bodyName || null,
+      spec?.transmissionName || null,
 
     color:
-      spec.colorName || null,
+      spec?.colorName || null,
 
     displacement:
-      spec.displacement || null,
-
-    seats:
-      spec.seatCount || null,
+      spec?.displacement || null,
 
     thumbnail:
-      images.length > 0
-        ? images[0]
-        : null,
+      images[0] || null,
 
-    images:
-      images,
+    images,
 
-    options:
-      options || {},
+    options,
 
-    inspection:
-      inspection || {},
+    inspection,
 
-    accident:
-      accident || {},
+    diagnosis,
+
+    verification,
 
     raw_data:
-      detail || {}
+      detail
   };
 }

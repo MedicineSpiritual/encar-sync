@@ -1,29 +1,39 @@
+import * as cheerio from "cheerio";
+
 import { fetchRetry } from "../utils/fetch.js";
-import { filterCars } from "../utils/filter.js";
 
 export async function searchCars() {
 
-  const url =
-    "https://api.encar.com/search/car/list/premium";
-
-  const params = {
-
-    count: 30,
-
-    q:
-      "(And.Hidden.N._.CarType.Y.)",
-
-    sr:
-      "|ModifiedDate|0|30"
-  };
-
   const response =
-    await fetchRetry(url, {
-      params
+    await fetchRetry(
+      "https://fem.encar.com/cars"
+    );
+
+  const $ =
+    cheerio.load(response.data);
+
+  const ids = [];
+
+  $("a").each((_, el) => {
+
+    const href =
+      $(el).attr("href");
+
+    if (!href) return;
+
+    const match =
+      href.match(/carid=(\d+)/);
+
+    if (!match) return;
+
+    ids.push({
+      Id: match[1]
     });
+  });
 
-  const cars =
-    response.data?.SearchResults || [];
-
-  return filterCars(cars);
+  return [
+    ...new Map(
+      ids.map(x => [x.Id, x])
+    ).values()
+  ];
 }

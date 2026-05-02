@@ -1,10 +1,10 @@
 import { fetchRetry } from "../utils/fetch.js";
 
-export async function getVehicle(id) {
+export async function getInspection(id) {
 
   const response =
     await fetchRetry(
-      `https://api.encar.com/v1/readside/clean-encar/vehicle/${id}`
+      `https://api.encar.com/v1/readside/inspection/vehicle/${id}`
     );
 
   return response.data;
