@@ -4,7 +4,10 @@ export async function searchCars() {
 
 const browser = await chromium.launch({
   headless: true,
-  args: ["--no-sandbox"]
+  args: [
+    "--no-sandbox",
+    "--disable-setuid-sandbox"
+  ]
 });
 
   const page =
